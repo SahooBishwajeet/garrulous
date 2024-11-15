@@ -5,6 +5,7 @@ datasets/LJSpeech/audio_samples/*
 
 # Trained Models
 models/*
+!models/attention_big.pth
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
