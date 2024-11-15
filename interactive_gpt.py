@@ -6,6 +6,8 @@ import argparse
 import os
 import sys
 
+import wave
+from piper.voice import PiperVoice
 
 # hyperparameters
 batch_size = 64
@@ -182,11 +184,21 @@ class GPTLanguageModel(nn.Module):
 # Instantiate model
 model = GPTLanguageModel().to(device)
 
-# Command line arguments
-parser = argparse.ArgumentParser(description="Train or Generate Text with GPT Model")
+# Command-line arguments
+parser = argparse.ArgumentParser(
+    description="Train or Generate Text with GPT Model and TTS"
+)
 parser.add_argument("--train", action="store_true", help="Train the model")
 parser.add_argument(
     "--generate", action="store_true", help="Generate text from the model"
+)
+parser.add_argument(
+    "--tts", action="store_true", help="Convert generated text to speech"
+)
+parser.add_argument(
+    "--stream",
+    action="store_true",
+    help="Stream audio in real-time while generating text",
 )
 parser.add_argument(
     "--model_path",
@@ -212,6 +224,19 @@ parser.add_argument(
     default="./output/generated_text.txt",
     help="Path to save the generated text output",
 )
+parser.add_argument(
+    "--voice_model",
+    type=str,
+    default="./voices/en_US-ljspeech-medium.onnx",
+    help="Path to the Piper voice model",
+)
+parser.add_argument(
+    "--audio_path",
+    type=str,
+    default="./output/generated_audio.wav",
+    help="Path to save the generated audio file",
+)
+
 
 args = parser.parse_args()
 
@@ -236,6 +261,16 @@ if args.train:
     os.makedirs(os.path.dirname(args.model_path), exist_ok=True)
     torch.save(model.state_dict(), args.model_path)
     print(f"Model saved to {args.model_path}")
+
+
+# Load TTS model
+def synthesize_audio(text, voice_model, audio_path):
+    print("Loading TTS model...")
+    voice = PiperVoice.load(voice_model)
+    print("Synthesizing audio...")
+    with wave.open(audio_path, "w") as wav_file:
+        voice.synthesize(text, wav_file)
+    print(f"Audio saved to {audio_path}")
 
 
 if args.generate:
@@ -269,12 +304,13 @@ if args.generate:
     print("Generated text (press Ctrl+C to stop if generating infinitely):")
     with open(output_path, "w") as f:
         token_count = 0
+        generated_text = ""
         try:
             while True:
                 idx_cond = context[:, -block_size:]
                 logits, _ = model(idx_cond)
                 logits = logits[:, -1, :]
-                probs = F.softmax(logits, dim=-1)
+                probs = torch.nn.functional.softmax(logits, dim=-1)
                 idx_next = torch.multinomial(probs, num_samples=1)
                 context = torch.cat((context, idx_next), dim=1)
 
@@ -283,6 +319,7 @@ if args.generate:
                 sys.stdout.write(next_char)
                 sys.stdout.flush()
                 f.write(next_char)
+                generated_text += next_char
 
                 token_count += 1
                 if output_size > 0 and token_count >= output_size:
@@ -292,3 +329,7 @@ if args.generate:
             print("\nGeneration stopped by user.")
 
     print(f"\n\nGenerated text saved to {output_path}")
+
+    # Text-to-Speech (TTS)
+    if args.tts:
+        synthesize_audio(generated_text, args.voice_model, args.audio_path)
