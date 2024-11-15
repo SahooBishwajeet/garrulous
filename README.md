@@ -12,14 +12,16 @@ Several techniques were used to train the model, starting of with the bigram mod
 ### Usage
 
 ```shell
-$ python3 interactive_gpt.py [-h] [--train] [--generate] [--spit] [--model_path MODEL_PATH]
+$ python3 interactive_gpt.py [-h] [--train] [--generate] [--model_path MODEL_PATH]
+                              [--starter_text STARTER_TEXT] [--output_size OUTPUT_SIZE]
+                              [--output_path OUTPUT_PATH]
 
 > Train the model
 $ python3 interactive_gpt.py --train --model_path <model_path>
 
 > Generate text
-$ python3 interactive_gpt.py --generate --model_path <model_path>
+$ python3 interactive_gpt.py --generate --model_path <model_path> --starter_text <starter_text> --output_size <output_size> --output_path <output_path>
 
 > Infinite text generation
-$ python3 interactive_gpt.py --spit --model_path <model_path>
+$ python3 interactive_gpt.py --generate --model_path <model_path> --starter_text <starter_text> --output_path <output_path>
 ```
