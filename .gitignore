@@ -1,3 +1,6 @@
+# LJSpeech Wavs
+datasets/LJSpeech/wavs/*
+
 # Trained Models
 models/*
 
